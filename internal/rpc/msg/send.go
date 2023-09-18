@@ -16,7 +16,6 @@ package msg
 
 import (
 	"context"
-
 	"github.com/OpenIMSDK/Open-IM-Server/pkg/msgprocessor"
 
 	"github.com/OpenIMSDK/protocol/constant"
@@ -70,6 +69,19 @@ func (m *msgServer) sendMsgSuperGroupChat(
 	if err := callbackMsgModify(ctx, req); err != nil {
 		return nil, err
 	}
+
+	// 自定义消息扩展监听器
+	//if req.MsgData.ContentType == constant.Custom {
+	//	// 解析红包自定义消息体
+	//	if cc, ok := parseCustomMessage(req.MsgData, localconstant.RedPacket); ok {
+	//		redPacketContent, err := m.points.SendRedPacket(ctx, cc)
+	//		if err != nil {
+	//			return nil, err
+	//		}
+	//		req.MsgData.Content = redPacketContent
+	//	}
+	//}
+
 	err = m.MsgDatabase.MsgToMQ(ctx, utils.GenConversationUniqueKeyForGroup(req.MsgData.GroupID), req.MsgData)
 	if err != nil {
 		return nil, err
@@ -175,6 +187,19 @@ func (m *msgServer) sendMsgSingleChat(ctx context.Context, req *pbmsg.SendMsgReq
 		if err := callbackMsgModify(ctx, req); err != nil {
 			return nil, err
 		}
+
+		// 自定义消息扩展监听器
+		//if req.MsgData.ContentType == constant.Custom {
+		//	// 解析红包自定义消息体
+		//	if cc, ok := parseCustomMessage(req.MsgData, localconstant.RedPacket); ok {
+		//		redPacketContent, err := m.points.SendRedPacket(ctx, cc)
+		//		if err != nil {
+		//			return nil, err
+		//		}
+		//		req.MsgData.Content = redPacketContent
+		//	}
+		//}
+
 		if err := m.MsgDatabase.MsgToMQ(ctx, utils.GenConversationUniqueKeyForSingle(req.MsgData.SendID, req.MsgData.RecvID), req.MsgData); err != nil {
 			promepkg.Inc(promepkg.SingleChatMsgProcessFailedCounter)
 			return nil, err

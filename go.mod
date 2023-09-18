@@ -42,7 +42,9 @@ require (
 	github.com/aliyun/aliyun-oss-go-sdk v2.2.8+incompatible
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/go-sql-driver/mysql v1.7.1
+	github.com/hdt3213/delayqueue v1.0.5-0.20230820094148-8cabcf8c96c0
 	github.com/redis/go-redis/v9 v9.0.5
+	github.com/shopspring/decimal v1.3.1
 	github.com/tencentyun/cos-go-sdk-v5 v0.7.42
 )
 
@@ -141,3 +143,5 @@ require (
 	golang.org/x/crypto v0.12.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 )
+
+replace github.com/OpenIMSDK/protocol v0.0.15 => github.com/zhouping-git/protocol v0.0.0-20230918162235-1fc43257a42c

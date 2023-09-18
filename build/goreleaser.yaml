@@ -254,6 +254,23 @@ builds:
     goarm:
       - "6"
       - "7"
+  - binary: openim-rpc-points
+    id: openim-rpc-points
+    main: ./cmd/openim-rpc/openim-rpc-points/main.go
+    goos:
+      - darwin
+      - windows
+      - linux
+    goarch:
+      - s390x
+      - mips64
+      - mips64le
+      - amd64
+      - ppc64le
+      - arm64
+    goarm:
+      - "6"
+      - "7"
 
 archives:
   - format: tar.gz
@@ -412,6 +429,7 @@ nfpms:
       - openim-rpc-msg
       - openim-rpc-third
       - openim-rpc-user
+      - openim-rpc-points
     # Your app's vendor.
     vendor: OpenIMSDK
     homepage: https://github.com/OpenIMSDK/Open-IM-Server

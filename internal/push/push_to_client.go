@@ -18,7 +18,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-
 	"github.com/OpenIMSDK/Open-IM-Server/pkg/msgprocessor"
 
 	"github.com/OpenIMSDK/protocol/constant"

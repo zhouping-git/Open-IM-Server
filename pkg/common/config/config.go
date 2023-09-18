@@ -156,6 +156,7 @@ type configStruct struct {
 		OpenImConversationPort   []int `yaml:"openImConversationPort"`
 		OpenImRtcPort            []int `yaml:"openImRtcPort"`
 		OpenImThirdPort          []int `yaml:"openImThirdPort"`
+		OpenImPointsPort         []int `yaml:"openImPointsPort"`
 	} `yaml:"rpcPort"`
 
 	RpcRegisterName struct {
@@ -168,6 +169,7 @@ type configStruct struct {
 		OpenImAuthName           string `yaml:"openImAuthName"`
 		OpenImConversationName   string `yaml:"openImConversationName"`
 		OpenImThirdName          string `yaml:"openImThirdName"`
+		OpenImPointsName         string `yaml:"openImPointsName"`
 	} `yaml:"rpcRegisterName"`
 
 	Log struct {
@@ -306,6 +308,8 @@ type notification struct {
 	//////////////////////conversation///////////////////////
 	ConversationChanged    NotificationConf `yaml:"conversationChanged"`
 	ConversationSetPrivate NotificationConf `yaml:"conversationSetPrivate"`
+	//////////////////////points///////////////////////
+	GrabRedPacket NotificationConf `yaml:"grabRedPacket"`
 }
 
 func (c *configStruct) GetServiceNames() []string {
@@ -319,6 +323,7 @@ func (c *configStruct) GetServiceNames() []string {
 		c.RpcRegisterName.OpenImAuthName,
 		c.RpcRegisterName.OpenImConversationName,
 		c.RpcRegisterName.OpenImThirdName,
+		c.RpcRegisterName.OpenImPointsName, // 自定义积分相关
 	}
 }
 

@@ -16,6 +16,7 @@ package startrpc
 
 import (
 	"fmt"
+	"github.com/OpenIMSDK/Open-IM-Server/pkg/common/network"
 	"net"
 	"strconv"
 	"time"
@@ -30,7 +31,6 @@ import (
 	"github.com/OpenIMSDK/tools/discoveryregistry/zookeeper"
 	"github.com/OpenIMSDK/tools/log"
 	"github.com/OpenIMSDK/tools/mw"
-	"github.com/OpenIMSDK/tools/network"
 	"github.com/OpenIMSDK/tools/prome"
 	"github.com/OpenIMSDK/tools/utils"
 )
@@ -70,6 +70,9 @@ func Start(
 	}
 	defer zkClient.CloseZK()
 	zkClient.AddOption(mw.GrpcClient(), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	// 此方式获取的ip地址在多网卡的时候会出现获取到无效网卡的情况
+	//registerIP, err := network.GetRpcRegisterIP(config.Config.Rpc.RegisterIP)
+	// 调用本地重写的实现方式
 	registerIP, err := network.GetRpcRegisterIP(config.Config.Rpc.RegisterIP)
 	if err != nil {
 		return err

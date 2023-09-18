@@ -1,7 +1,7 @@
 @echo off
 set output_dir=%~dp0..\_output\bin\platforms\windows
 
-set "rpc_apps=auth conversation friend group msg third user"
+set "rpc_apps=auth conversation friend group msg third user points"
 set "other_apps=api push msgtransfer msggateway"
 
 for %%a in (%rpc_apps%) do (

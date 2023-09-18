@@ -60,6 +60,7 @@ func NewGinRouter(discov discoveryregistry.SvcDiscoveryRegistry, rdb redis.Unive
 	conversationRpc := rpcclient.NewConversation(discov)
 	authRpc := rpcclient.NewAuth(discov)
 	thirdRpc := rpcclient.NewThird(discov)
+	pointsRpc := rpcclient.NewPoints(discov)
 
 	u := NewUserApi(*userRpc)
 	m := NewMessageApi(messageRpc, userRpc)
@@ -206,6 +207,22 @@ func NewGinRouter(discov discoveryregistry.SvcDiscoveryRegistry, rdb redis.Unive
 		statisticsGroup.POST("/group/create", g.GroupCreateCount)
 		statisticsGroup.POST("/group/active", m.GetActiveGroup)
 	}
+
+	p := NewPointsApi(*pointsRpc)
+	pointsGroup := r.Group("/points")
+	{
+		pointsGroup.POST("/get_user_points", p.GetUserPoints)
+		pointsGroup.POST("/user_points_recharge", p.UserPointsRecharge) // 用户积分充值
+		pointsGroup.POST("/user_points_withdraw", p.UserPointsWithdraw) // 用户积分提取
+		pointsGroup.POST("/points_water_for_type", p.PointsWaterForType)
+		pointsGroup.POST("/send_red_packet", p.SendRedPacket)
+		pointsGroup.POST("/batch_red_packet", p.BatchRedPacket)
+		pointsGroup.POST("/reset_red_packet", p.ResetRedPacket) // 消息发送失败删除关联红包
+		pointsGroup.POST("/grab_red_packet", p.GrabRedPacket)
+		pointsGroup.POST("/receive_c2c_red_packet", p.ReceiveC2CRedPacket)
+		pointsGroup.POST("/red_packet_detail", p.GetRedPacketDetail)
+	}
+
 	return r
 }
 

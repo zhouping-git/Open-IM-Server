@@ -40,6 +40,7 @@ openim::common::prometheus_port() {
     ${GROUP_PROM_PORT}              # Prometheus port for group service
     ${AUTH_PROM_PORT}               # Prometheus port for authentication service
     ${PUSH_PROM_PORT}               # Prometheus port for push notification service
+    ${POINTS_PROM_PORT}             # Prometheus port for points notification service
     ${CONVERSATION_PROM_PORT}       # Prometheus port for conversation service
     ${RTC_PROM_PORT}                # Prometheus port for real-time communication service
     ${THIRD_PROM_PORT}              # Prometheus port for third-party integrations service
@@ -63,6 +64,7 @@ openim::common::service_name() {
         openim-push
         openim-conversation
         openim-third
+        openim-points
         # openim-msg-transfer
 
         # api
@@ -88,6 +90,7 @@ openim::common::service_port() {
     ${OPENIM_PUSH_PORT}            # Push service
     ${OPENIM_CONVERSATION_PORT}    # Conversation service
     ${OPENIM_THIRD_PORT}           # Third-party service
+    ${OPENIM_POINTS_PORT}          # points service
 
     # API PORT
     ${API_OPENIM_PORT}             # API service

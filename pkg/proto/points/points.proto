@@ -1,0 +1,199 @@
+syntax = "proto3";
+package OpenIMServer.points;
+import "google/protobuf/empty.proto";
+//import "msg/msg.proto";
+import "sdkws/sdkws.proto";
+option go_package = "github.com/OpenIMSDK/Open-IM-Server/pkg/proto/points";
+
+message UserPointsReq {
+  string userId = 1;
+}
+
+message UserPointsResp {
+  float points = 1;
+}
+
+message UserPointsRechargeReq {
+  string userId = 1;
+  float money = 2;
+  int32 source = 3;
+}
+
+message UserPointsRechargeResp {
+  bool success = 1;
+}
+
+message UserPointsWithdrawReq {
+  string userId = 1;
+  float points = 2;
+  int32 target = 3;
+  string relationAccount = 4;
+}
+
+message UserPointsWithdrawResp {
+  bool success = 1;
+}
+
+message PointsWaterForTypeReq {
+  string userId = 1;
+  int32 pointsWaterType = 2;
+  sdkws.RequestPagination pagination = 3;
+}
+
+message PointsWater {
+  string pointsWaterId = 1;
+  string userId = 2;
+  float points = 3;
+  float money = 4;
+  int32 pointsWaterType = 5;
+  int32 source = 6;
+  int32 target = 7;
+  string relationAccount = 8;
+  string pointsWaterTime = 9;
+}
+
+message PointsWaterForTypeResp {
+  repeated PointsWater pointsWater = 1;
+  uint32 count = 2;
+}
+
+message SendRedPacketRep {
+  string redPacketId = 1;
+  int32 redPacketType = 2;
+  string groupId = 3;
+  string sendUserId = 4;
+  string receiveUserId = 5;
+  float points = 6;
+  int32 count = 7;
+  string title = 8;
+  repeated int32 lastDigits = 9;
+}
+
+message BatchRedPacketReq {
+  string groupId = 1;
+  string sendUserId = 2;
+  // 发送红包总数量
+  int32 redPacketCount = 3;
+  // 发送红包总积分
+  float sumPoints = 4;
+  float points = 5;
+  int32 count = 6;
+  string title = 7;
+  repeated int32 lastDigits = 8;
+}
+
+message SendRedPacketResp {
+  string redPacketId = 1;
+  int32 redPacketState = 2;
+}
+
+message ResetRedPacketReq {
+  string redPacketId = 1;
+}
+
+message GrabRedPacketReq {
+  string redPacketId = 1;
+  string sendUserId = 2;
+  string receiveUserId = 3;
+  string groupId = 4;
+}
+
+message GrabRedPacketTips {
+  GetRedPacketResp redPacket = 1;
+  sdkws.UserInfo sendUser = 2;
+  sdkws.UserInfo receiveUser = 3;
+}
+
+message GrabMessage {
+  string userId = 1;
+  int32 points = 2;
+}
+
+message GrabRedPacketResp {
+  bool success = 1;
+  int32 code = 2;
+  GrabMessage data = 3;
+}
+
+message ReceiveC2CRedPacketReq {
+  string redPacketId = 1;
+}
+
+message ReceiveC2CRedPacketResp {
+  bool success = 1;
+}
+
+message GetRedPacketReq {
+  string redPacketId = 1;
+}
+
+message GetRedPacketResp {
+  string redPacketId = 1;
+  int32 redPacketType = 2;
+  int32 redPackerState = 3;
+  string groupId = 4;
+  string sendUserId = 5;
+  string receiveUserId = 6;
+  float points = 7;
+  float remainPoints = 8;
+  int32 count = 9;
+  int32 remainCount = 10;
+  repeated int32 lastDigits = 11;
+  repeated int32 fixedIndex = 12;
+  repeated string whiteList = 13;
+  string createTime = 14;
+  string updateTime = 15;
+}
+
+message GetRedPacketDetailReq {
+  string redPacketId = 1;
+  int32 redPacketType = 2;
+}
+
+message ReceiveWaterResp {
+  string receiveWaterId = 1;
+  string redPacketId = 2;
+  string receiveUserId = 3;
+  float points = 4;
+  string createTime = 5;
+  string nickName = 6;
+  string faceUrl = 7;
+}
+
+message GetRedPacketDetailResp {
+  GetRedPacketResp info = 1;
+  repeated ReceiveWaterResp water = 2;
+}
+
+message RedPacketOverTimeReq {
+  string redPacketId = 1;
+}
+
+message RedPacketOverTimeResp {}
+
+service points {
+  // 获取用户积分
+  rpc GetUserPoints(UserPointsReq) returns(UserPointsResp);
+  // 用户积分充值
+  rpc UserPointsRecharge(UserPointsRechargeReq) returns(UserPointsRechargeResp);
+  // 用户积分提取
+  rpc UserPointsWithdraw(UserPointsWithdrawReq) returns(UserPointsWithdrawResp);
+  // 根据积分类型查询流水
+  rpc PointsWaterForType(PointsWaterForTypeReq) returns(PointsWaterForTypeResp);
+  // 发红包
+  rpc SendRedPacket(SendRedPacketRep) returns(SendRedPacketResp);
+  // 消息发送失败重置红包
+  rpc ResetRedPacket(ResetRedPacketReq) returns(google.protobuf.Empty);
+  // 批量发送红包
+  rpc BatchRedPacket(BatchRedPacketReq) returns(google.protobuf.Empty);
+  // 抢红包
+  rpc GrabRedPacket(GrabRedPacketReq) returns(GrabRedPacketResp);
+  // C2C红包接收
+  rpc ReceiveC2CRedPacket(ReceiveC2CRedPacketReq) returns(ReceiveC2CRedPacketResp);
+  // 获取红包
+  rpc GetRedPacket(GetRedPacketReq) returns(GetRedPacketResp);
+  // 红包过期
+  rpc RedPacketOverTime(RedPacketOverTimeReq) returns(RedPacketOverTimeResp);
+  // 获取红包信息，群红包返回流水
+  rpc GetRedPacketDetail(GetRedPacketDetailReq) returns(GetRedPacketDetailResp);
+}

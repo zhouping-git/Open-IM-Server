@@ -58,6 +58,7 @@ openim::rpc::service_name() {
     openim-rpc-auth
     openim-rpc-conversation
     openim-rpc-third
+    openim-rpc-points
   )
   echo "${targets[@]}"
 }
@@ -77,6 +78,7 @@ openim::rpc::service_port() {
     # ${OPENIM_PUSH_PORT}            # Push service 10170
     ${OPENIM_CONVERSATION_PORT}    # Conversation service 10180
     ${OPENIM_THIRD_PORT}           # Third-party service 10190
+    ${OPENIM_POINTS_PORT}          # Points service 10200
   )
   echo "${targets[@]}"
 }
@@ -94,6 +96,7 @@ openim::rpc::prometheus_port() {
     ${AUTH_PROM_PORT}               # Prometheus port for authentication service
     ${CONVERSATION_PROM_PORT}       # Prometheus port for conversation service
     ${THIRD_PROM_PORT}              # Prometheus port for third-party integrations service
+    ${POINTS_PROM_PORT}             # Prometheus port for points service
   )
   # Print the list of ports
   echo "${targets[@]}"

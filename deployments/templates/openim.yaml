@@ -169,6 +169,7 @@ rpcPort:
   openImPushPort: [ ${OPENIM_PUSH_PORT} ]
   openImConversationPort: [ ${OPENIM_CONVERSATION_PORT} ]
   openImThirdPort: [ ${OPENIM_THIRD_PORT} ]
+  openImPointsPort: [ ${OPENIM_POINTS_PORT} ]
 
 ###################### RPC Register Name Configuration ######################
 # RPC service names for registration, it's not recommended to modify these
@@ -182,6 +183,7 @@ rpcRegisterName:
   openImAuthName: ${OPENIM_AUTH_NAME}
   openImConversationName: ${OPENIM_CONVERSATION_NAME}
   openImThirdName: ${OPENIM_THIRD_NAME}
+  openImPointsName: ${OPENIM_POINTS_NAME}
 
 ###################### Log Configuration ######################
 # Log configuration
@@ -381,6 +383,7 @@ prometheus:
   groupPrometheusPort: [ ${GROUP_PROM_PORT} ]
   authPrometheusPort: [ ${AUTH_PROM_PORT} ]
   pushPrometheusPort: [ ${PUSH_PROM_PORT} ]
+  pointsPrometheusPort: [ ${POINTS_PROM_PORT} ]
   conversationPrometheusPort: [ ${CONVERSATION_PROM_PORT} ]
   rtcPrometheusPort: [ ${RTC_PROM_PORT} ]
   thirdPrometheusPort: [ ${THIRD_PROM_PORT} ]

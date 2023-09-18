@@ -173,6 +173,8 @@ readonly OPENIM_PUSH_PORT=${OPENIM_PUSH_PORT:-'10170'}
 readonly OPENIM_CONVERSATION_PORT=${OPENIM_CONVERSATION_PORT:-'10180'}
 # OpenIM第三方服务端口
 readonly OPENIM_THIRD_PORT=${OPENIM_THIRD_PORT:-'10190'}
+# OpenIM积分服务端口
+readonly OPENIM_POINTS_PORT=${OPENIM_POINTS_PORT:-'10200'}
 
 ###################### RPC Register Name Variables ######################
 def "OPENIM_USER_NAME" "User"                      # OpenIM用户服务名称
@@ -184,6 +186,7 @@ def "OPENIM_GROUP_NAME" "Group"                    # OpenIM组服务名称
 def "OPENIM_AUTH_NAME" "Auth"                      # OpenIM授权服务名称
 def "OPENIM_CONVERSATION_NAME" "Conversation"      # OpenIM对话服务名称
 def "OPENIM_THIRD_NAME" "Third"                    # OpenIM第三方服务名称
+def "OPENIM_POINTS_NAME" "Points"                  # OpenIM积分服务名称
 
 ###################### Log Configuration Variables ######################
 def "LOG_STORAGE_LOCATION" ""${OPENIM_ROOT}"/logs/" # 日志存储位置
@@ -239,6 +242,7 @@ def "MSG_GATEWAY_PROM_PORT" "20140"  # Message Gateway 服务的 Prometheus 端�
 def "GROUP_PROM_PORT" "20150"        # Group 服务的 Prometheus 端口
 def "AUTH_PROM_PORT" "20160"         # Auth 服务的 Prometheus 端口
 def "PUSH_PROM_PORT" "20170"         # Push 服务的 Prometheus 端口
+def "POINTS_PROM_PORT" "20180"       # Points 服务的 Prometheus 端口
 def "CONVERSATION_PROM_PORT" "20230" # Conversation 服务的 Prometheus 端口
 def "RTC_PROM_PORT" "21300"          # RTC 服务的 Prometheus 端口
 def "THIRD_PROM_PORT" "21301"        # Third 服务的 Prometheus 端口
@@ -403,6 +407,18 @@ def "OPENIM_RPC_USER_LOG_MAX_BACKUPS" "7"                               # OpenIM
 def "OPENIM_RPC_USER_LOG_MAX_AGE" "7"                                   # OpenIM openim-rpc-user 日志最大保存时间（天）
 def "OPENIM_RPC_USER_LOG_COMPRESS" "false"                              # OpenIM openim-rpc-user 日志是否压缩
 def "OPENIM_RPC_USER_LOG_WITH_STACK" "${LOG_WITH_STACK}"                # OpenIM openim-rpc-user 日志是否带有堆栈信息
+
+###################### OpenIM openim-rpc-points ######################
+def "OPENIM_RPC_USER_HOST" "127.0.0.1"
+def "OPENIM_RPC_USER_BINARY" "${OPENIM_OUTPUT_HOSTBIN}/openim-rpc-points" # OpenIM openim-rpc-points 二进制文件路径
+def "OPENIM_RPC_USER_CONFIG" ""${OPENIM_ROOT}"/config/"                   # OpenIM openim-rpc-points 配置文件路径
+def "OPENIM_RPC_USER_LOG_DIR" "${LOG_STORAGE_LOCATION}/openim-rpc-points" # OpenIM openim-rpc-points 日志存储路径
+def "OPENIM_RPC_USER_LOG_LEVEL" "info"                                  # OpenIM openim-rpc-points 日志级别
+def "OPENIM_RPC_USER_LOG_MAX_SIZE" "100"                                # OpenIM openim-rpc-points 日志最大大小（MB）
+def "OPENIM_RPC_USER_LOG_MAX_BACKUPS" "7"                               # OpenIM openim-rpc-points 日志最大备份数
+def "OPENIM_RPC_USER_LOG_MAX_AGE" "7"                                   # OpenIM openim-rpc-points 日志最大保存时间（天）
+def "OPENIM_RPC_USER_LOG_COMPRESS" "false"                              # OpenIM openim-rpc-points 日志是否压缩
+def "OPENIM_RPC_USER_LOG_WITH_STACK" "${LOG_WITH_STACK}"                # OpenIM openim-rpc-points 日志是否带有堆栈信息
 
 ###################### 设计中...暂时不需要######################
 

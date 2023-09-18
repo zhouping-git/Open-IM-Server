@@ -80,6 +80,7 @@ openim::golang::server_targets() {
     openim-rpc-msg
     openim-rpc-third
     openim-rpc-user
+    openim-rpc-points
   )
   echo "${targets[@]}"
 }
@@ -166,6 +167,7 @@ openim::golang::server_image_targets() {
     cmd/openim-rpc-msg
     cmd/openim-rpc-third
     cmd/openim-rpc-user
+    cmd/openim-rpc-points
   )
   echo "${targets[@]}"
 }

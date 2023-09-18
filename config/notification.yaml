@@ -25,6 +25,17 @@ groupCreated:
 # 不加消息contentType，content统一json 结构体使用pb的
 
 
+# 抢红包成功通知
+grabRedPacket:
+  isSendMsg: true
+  reliabilityLevel: 2
+  unreadCount: false
+  offlinePush:
+    enable: false
+    title: "title"
+    desc: "desc"
+    ext: "ext"
+
 groupInfoSet:
   isSendMsg: false
   reliabilityLevel: 1

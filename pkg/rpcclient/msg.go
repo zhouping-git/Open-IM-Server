@@ -17,10 +17,10 @@ package rpcclient
 import (
 	"context"
 	"encoding/json"
-
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 
+	localconstant "github.com/OpenIMSDK/Open-IM-Server/pkg/common/constant"
 	"github.com/OpenIMSDK/protocol/constant"
 	"github.com/OpenIMSDK/protocol/msg"
 	"github.com/OpenIMSDK/protocol/sdkws"
@@ -55,6 +55,9 @@ func newContentTypeConf() map[int32]config.NotificationConf {
 		constant.GroupMemberSetToOrdinaryUserNotification: config.Config.Notification.GroupMemberSetToOrdinary,
 		constant.GroupInfoSetAnnouncementNotification:     config.Config.Notification.GroupInfoSetAnnouncement,
 		constant.GroupInfoSetNameNotification:             config.Config.Notification.GroupInfoSetName,
+		// points
+		localconstant.GrabToReceiveNotification: config.Config.Notification.GrabRedPacket,
+		localconstant.GrabToSenderNotification:  config.Config.Notification.GrabRedPacket,
 		// user
 		constant.UserInfoUpdatedNotification:  config.Config.Notification.UserInfoUpdated,
 		constant.UserStatusChangeNotification: config.Config.Notification.UserStatusChanged,
@@ -102,6 +105,9 @@ func newSessionTypeConf() map[int32]int32 {
 		constant.GroupMemberSetToOrdinaryUserNotification: constant.SuperGroupChatType,
 		constant.GroupInfoSetAnnouncementNotification:     constant.SuperGroupChatType,
 		constant.GroupInfoSetNameNotification:             constant.SuperGroupChatType,
+		// points
+		localconstant.GrabToSenderNotification:  constant.SuperGroupChatType,
+		localconstant.GrabToReceiveNotification: constant.SuperGroupChatType,
 		// user
 		constant.UserInfoUpdatedNotification:  constant.SingleChatType,
 		constant.UserStatusChangeNotification: constant.SingleChatType,
@@ -205,6 +211,7 @@ func NewNotificationSender(opts ...NotificationSenderOptions) *NotificationSende
 
 type notificationOpt struct {
 	WithRpcGetUsername bool
+	WithRpcGroupId     string
 }
 
 type NotificationOptions func(*notificationOpt)
@@ -212,6 +219,12 @@ type NotificationOptions func(*notificationOpt)
 func WithRpcGetUserName() NotificationOptions {
 	return func(opt *notificationOpt) {
 		opt.WithRpcGetUsername = true
+	}
+}
+
+func WithRpcGroupId(groupId string) NotificationOptions {
+	return func(opt *notificationOpt) {
+		opt.WithRpcGroupId = groupId
 	}
 }
 
@@ -246,7 +259,11 @@ func (s *NotificationSender) NotificationWithSesstionType(ctx context.Context, s
 	msg.ContentType = contentType
 	msg.SessionType = sesstionType
 	if msg.SessionType == constant.SuperGroupChatType {
-		msg.GroupID = recvID
+		if notificationOpt.WithRpcGroupId != "" {
+			msg.GroupID = notificationOpt.WithRpcGroupId
+		} else {
+			msg.GroupID = recvID
+		}
 	}
 	msg.CreateTime = utils.GetCurrentTimestampByMill()
 	msg.ClientMsgID = utils.GetMsgID(sendID)
