@@ -77,6 +77,9 @@ type MsgDataModel struct {
 	AtUserIDList     []string          `bson:"at_user_id_list"`
 	AttachedInfo     string            `bson:"attached_info"`
 	Ex               string            `bson:"ex"`
+	SpecifyRecipient []string          `bson:"specify_recipient"` // 指定消息接受者。如：群消息指定接收用户；通知指定接收用户
+	ReadUsers        []string          `bson:"read_users"`        // 消息已读用户缓存
+	OperateStatus    int32             `bson:"operate_status"`    // 消息操作状态：0、无操作；1、可使用；2、已完成；3、已失效。此字段针对消息需要交互的场景使用，不需要交互的消息默认0
 }
 
 type MsgInfoModel struct {
@@ -130,6 +133,8 @@ type MsgDocModelInterface interface {
 		showNumber int32,
 	) (msgCount int64, userCount int64, groups []*GroupCount, dateCount map[string]int64, err error)
 	ConvertMsgsDocLen(ctx context.Context, conversationIDs []string)
+	AddMsgReadUser(ctx context.Context, docID string, readUserId string, seq int64) (*MsgDataModel, error)
+	UpdateMsgOperateStatus(ctx context.Context, docID string, seq int64, state int32, userId ...string) (*MsgDataModel, error)
 }
 
 func (MsgDocModel) TableName() string {

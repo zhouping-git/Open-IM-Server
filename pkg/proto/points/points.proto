@@ -92,10 +92,12 @@ message ResetRedPacketReq {
 }
 
 message GrabRedPacketReq {
-  string redPacketId = 1;
-  string sendUserId = 2;
-  string receiveUserId = 3;
-  string groupId = 4;
+  string conversationID = 1;
+  int64 seq = 2;
+  string redPacketId = 3;
+  string sendUserId = 4;
+  string receiveUserId = 5;
+  string groupId = 6;
 }
 
 message GrabRedPacketTips {
@@ -117,6 +119,8 @@ message GrabRedPacketResp {
 
 message ReceiveC2CRedPacketReq {
   string redPacketId = 1;
+  string conversationID = 2;
+  int64 seq = 3;
 }
 
 message ReceiveC2CRedPacketResp {

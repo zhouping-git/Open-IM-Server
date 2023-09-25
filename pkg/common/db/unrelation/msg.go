@@ -52,6 +52,75 @@ func NewMsgMongoDriver(database *mongo.Database) table.MsgDocModelInterface {
 	return &MsgMongoDriver{MsgCollection: collection}
 }
 
+func (m *MsgMongoDriver) UpdateMsgOperateStatus(ctx context.Context, docID string, seq int64, state int32, userId ...string) (*table.MsgDataModel, error) {
+	filter := bson.M{"doc_id": docID}
+	var update bson.M
+	if len(userId) > 0 && state == 2 {
+		update = bson.M{
+			"$set": bson.M{fmt.Sprintf("msgs.%d.msg.operate_status", seq): state},
+			"$push": bson.M{fmt.Sprintf("msgs.%d.msg.read_users", seq): bson.M{
+				"$each": userId,
+			}},
+		}
+	} else {
+		update = bson.M{"$set": bson.M{fmt.Sprintf("msgs.%d.msg.operate_status", seq): state}}
+	}
+	_, err := m.MsgCollection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return nil, err
+	}
+	return m.getMsgDataModelForSeq(ctx, docID, seq)
+}
+
+// AddMsgReadUser 自定义实现记录消息已读用户功能
+func (m *MsgMongoDriver) AddMsgReadUser(ctx context.Context, docID string, readUserId string, seq int64) (*table.MsgDataModel, error) {
+	filter := bson.M{"doc_id": docID}
+	update := bson.M{"$push": bson.M{fmt.Sprintf("msgs.%d.msg.read_users", seq): readUserId}}
+	if _, err := m.MsgCollection.UpdateOne(ctx, filter, update); err != nil {
+		return nil, err
+	}
+	return m.getMsgDataModelForSeq(ctx, docID, seq)
+}
+
+func (m *MsgMongoDriver) getMsgDataModelForSeq(ctx context.Context, docID string, seq int64) (*table.MsgDataModel, error) {
+	pipeline := mongo.Pipeline{
+		{
+			{"$match", bson.D{
+				{"doc_id", docID},
+			}},
+		},
+		{
+			{"$project", bson.D{
+				{"_id", 0},
+				{"msgs", bson.D{
+					{"$arrayElemAt", []any{"$msgs", seq}},
+				}},
+			}},
+		},
+		{
+			{"$replaceWith", "$msgs"},
+		},
+		{
+			{"$project", bson.D{
+				{"msg", 1},
+			}},
+		},
+	}
+	cur, err := m.MsgCollection.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, errs.Wrap(err)
+	}
+	defer cur.Close(ctx)
+	var resp table.MsgDataModel
+	if err := cur.All(ctx, &resp); err != nil {
+		return nil, errs.Wrap(err)
+	}
+	if &resp == nil {
+		return nil, errs.Wrap(mongo.ErrNoDocuments)
+	}
+	return &resp, nil
+}
+
 func (m *MsgMongoDriver) PushMsgsToDoc(ctx context.Context, docID string, msgsToMongo []table.MsgInfoModel) error {
 	return m.MsgCollection.FindOneAndUpdate(ctx, bson.M{"doc_id": docID}, bson.M{"$push": bson.M{"msgs": bson.M{"$each": msgsToMongo}}}).
 		Err()

@@ -21,6 +21,7 @@ func NewPointsNotificationSender(
 	return &PointsNotificationSender{
 		NotificationSender: rpcclient.NewNotificationSender(rpcclient.WithRpcClient(msgRpcClient), rpcclient.WithUserRpcClient(userRpcClient)),
 		pointsDb:           pointsDb,
+		msgRpcClient:       msgRpcClient,
 		getUsersInfo:       getUsersInfo,
 		getGroupInfo:       getGroupInfo,
 	}
@@ -29,6 +30,7 @@ func NewPointsNotificationSender(
 type PointsNotificationSender struct {
 	*rpcclient.NotificationSender
 	pointsDb     controller.PointsDatabaseInterface
+	msgRpcClient *rpcclient.MessageRpcClient
 	getUsersInfo func(ctx context.Context, userIDs []string) ([]CommonUser, error)
 	getGroupInfo func(ctx context.Context, groupID string) (*sdkws.GroupInfo, error)
 }
@@ -115,5 +117,5 @@ func (p *PointsNotificationSender) GrabRedPacketNotification(ctx context.Context
 		SendUser:    userMap[req.SendUserId],
 	}
 	// 抢红包用户通知
-	return p.Notification(ctx, req.ReceiveUserId, req.ReceiveUserId, localconstant.GrabToReceiveNotification, tips, rpcclient.WithRpcGroupId(req.GroupId))
+	return p.Notification(ctx, req.ReceiveUserId, req.GroupId, localconstant.GrabToReceiveNotification, tips, rpcclient.WithRpcSpecifyRecipient([]string{req.SendUserId, req.ReceiveUserId}))
 }

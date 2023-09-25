@@ -16,6 +16,7 @@ package push
 
 import (
 	"context"
+	localutils "github.com/OpenIMSDK/Open-IM-Server/pkg/utils"
 
 	"github.com/OpenIMSDK/protocol/constant"
 	"github.com/OpenIMSDK/protocol/sdkws"
@@ -135,7 +136,12 @@ func callbackBeforeSuperGroupOnlinePush(
 		return err
 	}
 	if len(resp.UserIDs) != 0 {
-		*pushToUserIDs = resp.UserIDs
+		if msg.SpecifyRecipient == nil { // 自定义实现指定用户发送
+			intersect := localutils.SliceIntersect(msg.SpecifyRecipient, resp.UserIDs)
+			*pushToUserIDs = intersect
+		} else {
+			*pushToUserIDs = resp.UserIDs
+		}
 	}
 	return nil
 }

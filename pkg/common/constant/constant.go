@@ -5,4 +5,7 @@ const (
 
 	GrabToReceiveNotification = 1581
 	GrabToSenderNotification  = 1582
+
+	UserReadReceipt = 2201
+	MsgStatusReceipt = 2202
 )

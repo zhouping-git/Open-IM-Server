@@ -119,6 +119,8 @@ type CommonMsgDatabase interface {
 		showNumber int32,
 	) (msgCount int64, userCount int64, groups []*unrelationtb.GroupCount, dateCount map[string]int64, err error)
 	ConvertMsgsDocLen(ctx context.Context, conversationIDs []string)
+	MarkUserReadMsg(ctx context.Context, conversationID string, readUserId string, seq int64) (*unrelationtb.MsgDataModel, error)
+	MarkMsgOperateStatus(ctx context.Context, conversationID string, seq int64, state int32, userId ...string) (*unrelationtb.MsgDataModel, error)
 }
 
 func NewCommonMsgDatabase(msgDocModel unrelationtb.MsgDocModelInterface, cacheModel cache.MsgModel) CommonMsgDatabase {
@@ -146,6 +148,16 @@ type commonMsgDatabase struct {
 	producerToMongo  *kafka.Producer
 	producerToModify *kafka.Producer
 	producerToPush   *kafka.Producer
+}
+
+func (db *commonMsgDatabase) MarkUserReadMsg(ctx context.Context, conversationID string, readUserId string, seq int64) (*unrelationtb.MsgDataModel, error) {
+	docId := db.msg.GetDocID(conversationID, seq)
+	return db.msgDocDatabase.AddMsgReadUser(ctx, docId, readUserId, seq)
+}
+
+func (db *commonMsgDatabase) MarkMsgOperateStatus(ctx context.Context, conversationID string, seq int64, state int32, userId ...string) (*unrelationtb.MsgDataModel, error) {
+	docId := db.msg.GetDocID(conversationID, seq)
+	return db.msgDocDatabase.UpdateMsgOperateStatus(ctx, docId, seq, state, userId...)
 }
 
 func (db *commonMsgDatabase) MsgToMQ(ctx context.Context, key string, msg2mq *sdkws.MsgData) error {
@@ -320,6 +332,8 @@ func (db *commonMsgDatabase) BatchInsertChat2DB(ctx context.Context, conversatio
 			AtUserIDList:     msg.AtUserIDList,
 			AttachedInfo:     msg.AttachedInfo,
 			Ex:               msg.Ex,
+			SpecifyRecipient: msg.SpecifyRecipient,
+			OperateStatus:    msg.OperateStatus,
 		}
 	}
 	return db.BatchInsertBlock(ctx, conversationID, msgs, updateKeyMsg, msgList[0].Seq)

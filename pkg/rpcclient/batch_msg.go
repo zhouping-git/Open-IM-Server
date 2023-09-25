@@ -19,36 +19,76 @@ import (
 
 //////////////自定义批量消息发送实现//////////////////////////////////////////////
 
-// func newMessageTypeConf() map[int32]interface{} {
-var messageTypeConf = map[int32]string{
-	constant.Picture:                      "PictureElem",
-	constant.Voice:                        "SoundElem",
-	constant.Video:                        "VideoElem",
-	constant.File:                         "FileElem",
-	constant.Custom:                       "CustomElem",
-	constant.Revoke:                       "RevokeElem",
-	constant.OANotification:               "OANotificationElem",
-	constant.CustomNotTriggerConversation: "CustomElem",
-	constant.CustomOnlineOnly:             "CustomElem",
+func newMessageTypeConf() map[int32]string {
+	return map[int32]string{
+		constant.Picture:                      "PictureElem",
+		constant.Voice:                        "SoundElem",
+		constant.Video:                        "VideoElem",
+		constant.File:                         "FileElem",
+		constant.Custom:                       "CustomElem",
+		constant.Revoke:                       "RevokeElem",
+		constant.OANotification:               "OANotificationElem",
+		constant.CustomNotTriggerConversation: "CustomElem",
+		constant.CustomOnlineOnly:             "CustomElem",
+	}
 }
-
-//}
 
 type BatchMsgSender[T BatchMsgType] struct {
 	validate        *validator.Validate
-	messageTypeConf map[int32]interface{}
+	messageTypeConf map[int32]string
 	sendMsg         func(ctx context.Context, req *msg.SendMsgReq) (*msg.SendMsgResp, error)
 	getUserInfo     func(ctx context.Context, userID string) (*sdkws.UserInfo, error)
 }
 
+type BatchMsgSenderOptions[T BatchMsgType] func(*BatchMsgSender[T])
+
+func WithMsgLocalSendMsg[T BatchMsgType](sendMsg func(ctx context.Context, req *msg.SendMsgReq) (*msg.SendMsgResp, error)) BatchMsgSenderOptions[T] {
+	return func(s *BatchMsgSender[T]) {
+		s.sendMsg = sendMsg
+	}
+}
+
+func WithMsgRpcClient[T BatchMsgType](msgRpcClient *MessageRpcClient) BatchMsgSenderOptions[T] {
+	return func(s *BatchMsgSender[T]) {
+		s.sendMsg = msgRpcClient.SendMsg
+	}
+}
+
+func WithMsgUserRpcClient[T BatchMsgType](userRpcClient *UserRpcClient) BatchMsgSenderOptions[T] {
+	return func(s *BatchMsgSender[T]) {
+		s.getUserInfo = userRpcClient.GetUserInfo
+	}
+}
+
+func NewBatchMsgSender[T BatchMsgType](opts ...BatchMsgSenderOptions[T]) *BatchMsgSender[T] {
+	batchMsgSender := &BatchMsgSender[T]{messageTypeConf: newMessageTypeConf()}
+	for _, opt := range opts {
+		opt(batchMsgSender)
+	}
+	return batchMsgSender
+}
+
 type batchMsgOpt struct {
-	WithGroupId     string
-	IsOnlineOnly    bool
-	NotOfflinePush  bool
-	OfflinePushInfo *sdkws.OfflinePushInfo
+	WithSpecifyRecipient []string // 指定具体发送的用户
+	WithOperateStatus    int32    // 指定操作状态
+	IsOnlineOnly         bool
+	NotOfflinePush       bool
+	OfflinePushInfo      *sdkws.OfflinePushInfo
 }
 
 type BatchMsgOptions func(*batchMsgOpt)
+
+func WithSpecifyRecipient(specifyRecipient []string) BatchMsgOptions {
+	return func(opt *batchMsgOpt) {
+		opt.WithSpecifyRecipient = specifyRecipient
+	}
+}
+
+func WithOperateStatus(operateStatus int32) BatchMsgOptions {
+	return func(opt *batchMsgOpt) {
+		opt.WithOperateStatus = operateStatus
+	}
+}
 
 func IsOnlineOnly(t bool) BatchMsgOptions {
 	return func(opt *batchMsgOpt) {
@@ -65,12 +105,6 @@ func NotOfflinePush(t bool) BatchMsgOptions {
 func OfflinePushInfo(info *sdkws.OfflinePushInfo) BatchMsgOptions {
 	return func(opt *batchMsgOpt) {
 		opt.OfflinePushInfo = info
-	}
-}
-
-func WithGroupId(groupId string) BatchMsgOptions {
-	return func(opt *batchMsgOpt) {
-		opt.WithGroupId = groupId
 	}
 }
 
@@ -100,7 +134,8 @@ func (s *BatchMsgSender[T]) buildBatchMsg(ctx context.Context, sendID, recvID st
 		return err
 	}
 	batchMsgOpt := &batchMsgOpt{
-		IsOnlineOnly: false,
+		WithOperateStatus: 0,
+		IsOnlineOnly:      false,
 		OfflinePushInfo: &sdkws.OfflinePushInfo{
 			Title: "",
 			Desc:  "",
@@ -160,15 +195,18 @@ func (s *BatchMsgSender[T]) buildBatchMsg(ctx context.Context, sendID, recvID st
 	}
 
 	if msg.SessionType == constant.SuperGroupChatType || msg.SessionType == constant.GroupChatType {
-		if batchMsgOpt.WithGroupId != "" {
-			msg.GroupID = batchMsgOpt.WithGroupId
-		} else {
-			msg.GroupID = recvID
-		}
+		msg.GroupID = recvID
 	}
 	msg.CreateTime = utils.GetCurrentTimestampByMill()
 	msg.ClientMsgID = utils.GetMsgID(sendID)
 	msg.OfflinePushInfo = batchMsgOpt.OfflinePushInfo
+
+	// 自定义指定用户
+	if len(batchMsgOpt.WithSpecifyRecipient) > 0 {
+		msg.SpecifyRecipient = batchMsgOpt.WithSpecifyRecipient
+	}
+	msg.OperateStatus = batchMsgOpt.WithOperateStatus
+
 	req.MsgData = &msg
 	_, err = s.sendMsg(ctx, &req)
 	if err == nil {
@@ -180,13 +218,13 @@ func (s *BatchMsgSender[T]) buildBatchMsg(ctx context.Context, sendID, recvID st
 }
 
 func (s *BatchMsgSender[T]) SendBatchMsg(ctx context.Context, sendID, recvID string, contentType, sessionType int32, m []T, opts ...BatchMsgOptions) error {
-	if localutils.ElementInSlice(sessionTypeConfig, sessionType) {
+	if !localutils.ElementInSlice(sessionTypeConfig, sessionType) {
 		return errs.ErrArgs.WithDetail("sessionType is not in sessionTypeConfig")
 	}
-	if localutils.ElementInSlice(contentTypeConfig, contentType) {
+	if !localutils.ElementInSlice(contentTypeConfig, contentType) {
 		return errs.ErrArgs.WithDetail("contentType is not in contentTypeConfig")
 	}
-	if reflect.TypeOf(m).Name() != messageTypeConf[contentType] {
+	if reflect.TypeOf(m).Name() != s.messageTypeConf[contentType] {
 		return errs.ErrArgs.WithDetail("Content is not contentType")
 	}
 
@@ -200,4 +238,18 @@ func (s *BatchMsgSender[T]) SendBatchMsg(ctx context.Context, sendID, recvID str
 		}()
 	}
 	return nil
+}
+
+func (s *BatchMsgSender[T]) SendOnlyMsg(ctx context.Context, sendID, recvID string, contentType, sessionType int32, m T, opts ...BatchMsgOptions) error {
+	if !localutils.ElementInSlice(sessionTypeConfig, sessionType) {
+		return errs.ErrArgs.WithDetail("sessionType is not in sessionTypeConfig")
+	}
+	if !localutils.ElementInSlice(contentTypeConfig, contentType) {
+		return errs.ErrArgs.WithDetail("contentType is not in contentTypeConfig")
+	}
+	if reflect.TypeOf(m).Name() != s.messageTypeConf[contentType] {
+		return errs.ErrArgs.WithDetail("Content is not contentType")
+	}
+
+	return s.buildBatchMsg(ctx, sendID, recvID, contentType, sessionType, m, opts...)
 }

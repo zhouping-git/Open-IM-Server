@@ -144,4 +144,4 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 )
 
-replace github.com/OpenIMSDK/protocol v0.0.15 => github.com/zhouping-git/protocol v0.0.0-20230918162235-1fc43257a42c
+replace github.com/OpenIMSDK/protocol v0.0.15 => github.com/zhouping-git/protocol v0.0.0-20230921074639-38b829973d06

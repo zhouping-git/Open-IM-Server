@@ -210,8 +210,8 @@ func NewNotificationSender(opts ...NotificationSenderOptions) *NotificationSende
 }
 
 type notificationOpt struct {
-	WithRpcGetUsername bool
-	WithRpcGroupId     string
+	WithRpcGetUsername      bool
+	WithRpcSpecifyRecipient []string // 指定具体发送的用户
 }
 
 type NotificationOptions func(*notificationOpt)
@@ -222,9 +222,9 @@ func WithRpcGetUserName() NotificationOptions {
 	}
 }
 
-func WithRpcGroupId(groupId string) NotificationOptions {
+func WithRpcSpecifyRecipient(specifyRecipient []string) NotificationOptions {
 	return func(opt *notificationOpt) {
-		opt.WithRpcGroupId = groupId
+		opt.WithRpcSpecifyRecipient = specifyRecipient
 	}
 }
 
@@ -235,7 +235,9 @@ func (s *NotificationSender) NotificationWithSesstionType(ctx context.Context, s
 		log.ZError(ctx, "MsgClient Notification json.Marshal failed", err, "sendID", sendID, "recvID", recvID, "contentType", contentType, "msg", m)
 		return err
 	}
-	notificationOpt := &notificationOpt{}
+	notificationOpt := &notificationOpt{
+		WithRpcSpecifyRecipient: []string{},
+	}
 	for _, opt := range opts {
 		opt(notificationOpt)
 	}
@@ -259,11 +261,7 @@ func (s *NotificationSender) NotificationWithSesstionType(ctx context.Context, s
 	msg.ContentType = contentType
 	msg.SessionType = sesstionType
 	if msg.SessionType == constant.SuperGroupChatType {
-		if notificationOpt.WithRpcGroupId != "" {
-			msg.GroupID = notificationOpt.WithRpcGroupId
-		} else {
-			msg.GroupID = recvID
-		}
+		msg.GroupID = recvID
 	}
 	msg.CreateTime = utils.GetCurrentTimestampByMill()
 	msg.ClientMsgID = utils.GetMsgID(sendID)
@@ -273,6 +271,12 @@ func (s *NotificationSender) NotificationWithSesstionType(ctx context.Context, s
 	offlineInfo.Desc = desc
 	offlineInfo.Ex = ex
 	msg.OfflinePushInfo = &offlineInfo
+
+	// 自定义指定用户
+	if len(notificationOpt.WithRpcSpecifyRecipient) > 0 {
+		msg.SpecifyRecipient = notificationOpt.WithRpcSpecifyRecipient
+	}
+
 	req.MsgData = &msg
 	_, err = s.sendMsg(ctx, &req)
 	if err == nil {

@@ -14,6 +14,7 @@ import (
 	"github.com/OpenIMSDK/Open-IM-Server/pkg/rpcclient/batchmsg"
 	"github.com/OpenIMSDK/Open-IM-Server/pkg/rpcclient/notification"
 	localutils "github.com/OpenIMSDK/Open-IM-Server/pkg/utils"
+	"github.com/OpenIMSDK/protocol/msg"
 	"github.com/OpenIMSDK/protocol/sdkws"
 	"github.com/OpenIMSDK/tools/discoveryregistry"
 	"github.com/OpenIMSDK/tools/errs"
@@ -86,11 +87,14 @@ func Start(client discoveryregistry.SvcDiscoveryRegistry, server *grpc.Server) e
 	delayQueue := delayqueue.NewDelayQueue(rdb, client, context.Background())
 	batchRedPacket := batchmsg.NewBatchRedPacketSender(
 		pointsDatabase,
+		&msgRpcClient,
+		&userRpcClient,
 		delayQueue,
 	)
 	p := pointsServer{
 		pointsDatabase: pointsDatabase,
 		userClient:     userRpcClient,
+		msgClient:      msgRpcClient,
 		notification:   pointsNotification,
 		batchMsg:       batchRedPacket,
 		secKillSHA:     grabredpacket.PrepareScript(context.Background(), grabredpacket.SecKillScript), // 加载redis脚本
@@ -112,6 +116,7 @@ type pointsServer struct {
 	*pointspb.UnimplementedPointsServer
 	pointsDatabase controller.PointsDatabaseInterface
 	userClient     rpcclient.UserRpcClient
+	msgClient      rpcclient.MessageRpcClient
 	notification   *notification.PointsNotificationSender
 	batchMsg       *batchmsg.BatchRedPacketSender
 	delayQueue     *delayqueue.RedPacketDelayQueue
@@ -229,10 +234,9 @@ func (o *pointsServer) GrabRedPacket(ctx context.Context, req *pointspb.GrabRedP
 	str, _ := json.Marshal(mData)
 	code, err := grabredpacket.CacheAtomicSecKill(ctx, o.secKillSHA, req.RedPacketId, req.ReceiveUserId, string(str))
 	if err == nil {
-		// 协程处理DB数据库
+		// 协程处理DB数据以及消息服务器数据库和发送通知消息
 		secKillMessage := SecKillMessage{
-			RedPacketId:   req.RedPacketId,
-			UserId:        req.ReceiveUserId,
+			Req:           req,
 			ReceivePoints: tPoints,
 			IsComplete:    localutils.ThreeWayOperator(code == 2, true, false),
 			Server:        o,
@@ -246,10 +250,10 @@ func (o *pointsServer) GrabRedPacket(ctx context.Context, req *pointspb.GrabRedP
 		data := model.HistoryRewards[hLen-1]
 
 		// 发送抢包通知
-		go func() {
-			nctx := mcontext.NewCtx("@@@" + mcontext.GetOperationID(ctx))
-			o.notification.GrabRedPacketNotification(nctx, req)
-		}()
+		//go func() {
+		//	nctx := mcontext.NewCtx("@@@" + mcontext.GetOperationID(ctx))
+		//	o.notification.GrabRedPacketNotification(nctx, req)
+		//}()
 
 		return &pointspb.GrabRedPacketResp{
 			Success: true,
@@ -328,6 +332,30 @@ func (o *pointsServer) ReceiveC2CRedPacket(ctx context.Context, req *pointspb.Re
 	if err != nil {
 		return nil, err
 	}
+
+	// 设置红包消息状态为已完成
+	go func() {
+		nctx := mcontext.NewCtx("@@@" + mcontext.GetOperationID(ctx))
+		if redPacket.RedPacketType == 2 {
+			o.msgClient.Client.SetMarkMsgOperateStatus(nctx, &msg.SetMarkMsgOperateStatusReq{
+				ConversationID:   req.ConversationID,
+				UserID:           redPacket.ReceiveUserId,
+				Seq:              req.Seq,
+				State:            2,
+				IsAddRead:        false,
+				SpecifyRecipient: []string{redPacket.SendUserId, redPacket.ReceiveUserId},
+			})
+		} else {
+			o.msgClient.Client.SetMarkMsgOperateStatus(nctx, &msg.SetMarkMsgOperateStatusReq{
+				ConversationID: req.ConversationID,
+				UserID:         redPacket.ReceiveUserId,
+				Seq:            req.Seq,
+				State:          2,
+				IsAddRead:      false,
+			})
+		}
+	}()
+
 	return &pointspb.ReceiveC2CRedPacketResp{Success: true}, nil
 }
 
@@ -393,6 +421,12 @@ func (o *pointsServer) SendRedPacket(ctx context.Context, data *pointspb.SendRed
 	if err := o.pointsDatabase.SendRedPacket(ctx, redPacket); err != nil {
 		return nil, err
 	}
+
+	// 发送红包消息
+	if err := o.batchMsg.OnlyRedPacket(ctx, redPacket, data.Title); err != nil {
+		return nil, err
+	}
+
 	// 将红包放入延迟队列
 	o.delayQueue.SendMsg(redPacket.RedPacketId)
 

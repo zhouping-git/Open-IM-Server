@@ -3,6 +3,8 @@ package points
 import (
 	"context"
 	"github.com/OpenIMSDK/Open-IM-Server/pkg/common/db/table/relation"
+	pointspb "github.com/OpenIMSDK/Open-IM-Server/pkg/proto/points"
+	"github.com/OpenIMSDK/protocol/msg"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"log"
@@ -10,8 +12,7 @@ import (
 )
 
 type SecKillMessage struct {
-	RedPacketId   string
-	UserId        string
+	Req           *pointspb.GrabRedPacketReq
 	ReceivePoints decimal.Decimal
 	IsComplete    bool
 	NewFixedIndex []int32
@@ -25,10 +26,10 @@ var SecKillChannel = make(chan SecKillMessage, maxMessageNum)
 func secKillConsumer() {
 	for {
 		message := <-SecKillChannel
-		log.Println("Got one message: " + message.RedPacketId)
+		log.Println("Got one message: " + message.Req.RedPacketId)
 
-		redPacketId := message.RedPacketId
-		userId := message.UserId
+		redPacketId := message.Req.RedPacketId
+		userId := message.Req.ReceiveUserId
 		receivePoints := message.ReceivePoints
 		isComplete := message.IsComplete
 
@@ -40,16 +41,40 @@ func secKillConsumer() {
 			CreateTime:     time.Now(),
 		}
 
+		ctx := context.Background()
 		var err error
 		if message.NewFixedIndex == nil {
-			err = message.Server.pointsDatabase.GrabRedPacket(context.Background(), receiveWater, isComplete)
+			err = message.Server.pointsDatabase.GrabRedPacket(ctx, receiveWater, isComplete)
 		} else {
-			err = message.Server.pointsDatabase.GrabRedPacket(context.Background(), receiveWater, isComplete, message.NewFixedIndex)
+			err = message.Server.pointsDatabase.GrabRedPacket(ctx, receiveWater, isComplete, message.NewFixedIndex)
 		}
 
 		if err != nil {
 			return
 		}
+
+		if isComplete {
+			// 所有红包抢完则修改消息操作状态
+			_, err = message.Server.msgClient.Client.SetMarkMsgOperateStatus(ctx, &msg.SetMarkMsgOperateStatusReq{
+				ConversationID: message.Req.ConversationID,
+				UserID:         message.Req.ReceiveUserId,
+				Seq:            message.Req.Seq,
+				State:          2,
+				IsAddRead:      true,
+			})
+		} else {
+			// 抢红包成功将用户加入红包已读用户组
+			_, err = message.Server.msgClient.Client.SetMarkUserReadMsg(ctx, &msg.SetMarkUserReadMsgReq{
+				ConversationID: message.Req.ConversationID,
+				UserID:         message.Req.ReceiveUserId,
+				Seq:            message.Req.Seq,
+			})
+		}
+
+		if err != nil {
+			return
+		}
+		message.Server.notification.GrabRedPacketNotification(ctx, message.Req)
 	}
 }
 

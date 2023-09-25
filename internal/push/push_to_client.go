@@ -19,6 +19,8 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/OpenIMSDK/Open-IM-Server/pkg/msgprocessor"
+	localutils "github.com/OpenIMSDK/Open-IM-Server/pkg/utils"
+	"github.com/OpenIMSDK/tools/errs"
 
 	"github.com/OpenIMSDK/protocol/constant"
 	"github.com/OpenIMSDK/protocol/msggateway"
@@ -94,6 +96,15 @@ func (p *Pusher) DeleteMemberAndSetConversationSeq(ctx context.Context, groupID 
 
 func (p *Pusher) Push2User(ctx context.Context, userIDs []string, msg *sdkws.MsgData) error {
 	log.ZDebug(ctx, "Get msg from msg_transfer And push msg", "userIDs", userIDs, "msg", msg.String())
+
+	// 自定义指定用户发送
+	if msg.SpecifyRecipient != nil {
+		userIDs = localutils.SliceIntersect(userIDs, msg.SpecifyRecipient)
+		if len(userIDs) == 0 {
+			return errs.ErrData.WithDetail("SpecifyRecipient no push user")
+		}
+	}
+
 	// callback
 	if err := callbackOnlinePush(ctx, userIDs, msg); err != nil {
 		return err
@@ -199,7 +210,17 @@ func (p *Pusher) Push2SuperGroup(ctx context.Context, groupID string, msg *sdkws
 	if isOfflinePush {
 		var onlineSuccessUserIDs []string
 		var WebAndPcBackgroundUserIDs []string
-		onlineSuccessUserIDs = append(onlineSuccessUserIDs, msg.SendID)
+
+		// 当存在指定用户发送场景时判断发送用户是否在接收中，存在才添加
+		if msg.SpecifyRecipient != nil {
+			if localutils.ElementInSlice(msg.SpecifyRecipient, msg.SendID) {
+				onlineSuccessUserIDs = append(onlineSuccessUserIDs, msg.SendID)
+			}
+		} else {
+			onlineSuccessUserIDs = append(onlineSuccessUserIDs, msg.SendID)
+		}
+		//onlineSuccessUserIDs = append(onlineSuccessUserIDs, msg.SendID)
+
 		for _, v := range wsResults {
 			if v.OnlinePush && v.UserID != msg.SendID {
 				onlineSuccessUserIDs = append(onlineSuccessUserIDs, v.UserID)

@@ -21,11 +21,14 @@ import (
 
 func NewBatchRedPacketSender(
 	pointsDb controller.PointsDatabaseInterface,
+	msgRpcClient *rpcclient.MessageRpcClient,
+	userRpcClient *rpcclient.UserRpcClient,
 	delayQueue *delayqueue.RedPacketDelayQueue,
 ) *BatchRedPacketSender {
 	return &BatchRedPacketSender{
-		pointsDb:   pointsDb,
-		delayQueue: delayQueue,
+		BatchMsgSender: rpcclient.NewBatchMsgSender(rpcclient.WithMsgRpcClient[apistruct.CustomElem](msgRpcClient), rpcclient.WithMsgUserRpcClient[apistruct.CustomElem](userRpcClient)),
+		pointsDb:       pointsDb,
+		delayQueue:     delayQueue,
 	}
 }
 
@@ -33,6 +36,86 @@ type BatchRedPacketSender struct {
 	*rpcclient.BatchMsgSender[apistruct.CustomElem]
 	pointsDb   controller.PointsDatabaseInterface
 	delayQueue *delayqueue.RedPacketDelayQueue
+}
+
+func (p *BatchRedPacketSender) OnlyRedPacket(ctx context.Context, redPacket *relationtb.RedPacket, title string) (err error) {
+	points, _ := redPacket.Points.Float64()
+
+	switch redPacket.RedPacketType {
+	case 1:
+		msgData := apistruct.CustomContextElem{
+			CustomType: localconstant.RedPacketMsg,
+			Data: apistruct.RedPacketElem{
+				RedPacketId:    redPacket.RedPacketId,
+				RedPacketType:  int32(redPacket.RedPacketType),
+				RedPacketState: int32(redPacket.RedPackerState),
+				GroupId:        redPacket.GroupId,
+				SendUserId:     redPacket.SendUserId,
+				Points:         float32(points),
+				Count:          redPacket.Count,
+				Title:          title,
+				LastDigits:     redPacket.LastDigits,
+			},
+		}
+		dataStr, _ := json.Marshal(msgData)
+		elem := apistruct.CustomElem{
+			Data:        string(dataStr),
+			Description: "",
+			Extension:   "",
+		}
+		err = p.BatchMsgSender.SendOnlyMsg(ctx, redPacket.SendUserId, redPacket.GroupId, constant.Custom, constant.SuperGroupChatType, elem, rpcclient.WithOperateStatus(1))
+	case 2:
+		msgData := apistruct.CustomContextElem{
+			CustomType: localconstant.RedPacketMsg,
+			Data: apistruct.RedPacketElem{
+				RedPacketId:    redPacket.RedPacketId,
+				RedPacketType:  int32(redPacket.RedPacketType),
+				RedPacketState: int32(redPacket.RedPackerState),
+				GroupId:        redPacket.GroupId,
+				SendUserId:     redPacket.SendUserId,
+				ReceiveUserId:  redPacket.ReceiveUserId,
+				Points:         float32(points),
+				Title:          title,
+			},
+		}
+		dataStr, _ := json.Marshal(msgData)
+		elem := apistruct.CustomElem{
+			Data:        string(dataStr),
+			Description: "",
+			Extension:   "",
+		}
+		err = p.BatchMsgSender.SendOnlyMsg(
+			ctx,
+			redPacket.SendUserId,
+			redPacket.GroupId,
+			constant.Custom,
+			constant.SuperGroupChatType,
+			elem,
+			rpcclient.WithSpecifyRecipient([]string{redPacket.SendUserId, redPacket.ReceiveUserId}),
+			rpcclient.WithOperateStatus(1),
+		)
+	case 3:
+		msgData := apistruct.CustomContextElem{
+			CustomType: localconstant.RedPacketMsg,
+			Data: apistruct.RedPacketElem{
+				RedPacketId:    redPacket.RedPacketId,
+				RedPacketType:  int32(redPacket.RedPacketType),
+				RedPacketState: int32(redPacket.RedPackerState),
+				SendUserId:     redPacket.SendUserId,
+				ReceiveUserId:  redPacket.ReceiveUserId,
+				Points:         float32(points),
+				Title:          title,
+			},
+		}
+		dataStr, _ := json.Marshal(msgData)
+		elem := apistruct.CustomElem{
+			Data:        string(dataStr),
+			Description: "",
+			Extension:   "",
+		}
+		err = p.BatchMsgSender.SendOnlyMsg(ctx, redPacket.SendUserId, redPacket.ReceiveUserId, constant.Custom, constant.SingleChatType, elem, rpcclient.WithOperateStatus(1))
+	}
+	return err
 }
 
 func (p *BatchRedPacketSender) BatchRedPacket(ctx context.Context, req *pointspb.BatchRedPacketReq) (err error) {
@@ -116,7 +199,7 @@ func (p *BatchRedPacketSender) BatchRedPacket(ctx context.Context, req *pointspb
 			p.delayQueue.SendMsgs(ids)
 
 			// 批量发送消息
-			err = p.BatchMsgSender.SendBatchMsg(ctx, req.SendUserId, req.GroupId, constant.Custom, constant.SuperGroupChatType, elems)
+			err = p.BatchMsgSender.SendBatchMsg(ctx, req.SendUserId, req.GroupId, constant.Custom, constant.SuperGroupChatType, elems, rpcclient.WithOperateStatus(1))
 		}
 	}
 

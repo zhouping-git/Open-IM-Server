@@ -1,0 +1,19 @@
+syntax = "proto3";
+package OpenIMServer.specifyread;
+import "sdkws/sdkws.proto";
+option go_package = "github.com/OpenIMSDK/Open-IM-Server/pkg/proto/specifyread";
+
+message SetConversationForUserAndSeqReq {
+  string conversationID = 1;
+  string userID = 2;
+  int64 seq = 3;
+}
+
+message SetConversationForUserAndSeqResp {}
+
+message MarkUserReadMsgTip {
+  string conversationID = 1;
+  string userID = 2;
+  int64 seq = 3;
+  sdkws.MsgData msgData = 4;
+}
